@@ -10,6 +10,7 @@ import           KV.Store
 import           KV.Types
 import           Servant
 import           Servant.Swagger
+import           Servant.Swagger.UI
 
 
 type API = Get '[JSON] [Values]
@@ -20,7 +21,7 @@ type API = Get '[JSON] [Values]
 kvApi :: Proxy API
 kvApi = Proxy
 
-type SwaggerEndpoint = "swagger.json" :> Get '[JSON] Swagger
+type SwaggerEndpoint = SwaggerSchemaUI "swagger-ui" "swagger.json"
 
 fullApi :: Proxy (SwaggerEndpoint :<|> API)
 fullApi = Proxy
@@ -34,10 +35,10 @@ kvSwagger = toSwagger kvApi
             & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
 
 server :: (MonadStore s IO) => s -> IO Application
-server store = pure $ serve fullApi $ hoistServer fullApi runServer prodHandler
+server store = pure $ serve fullApi $ swaggerSchemaUIServer kvSwagger :<|> hoistServer kvApi runServer prodHandler
   where
     runServer = Handler . flip runReaderT store
-    prodHandler = pure kvSwagger :<|> (handleList :<|> handleGet :<|> handlePut :<|> handlePost)
+    prodHandler = handleList :<|> handleGet :<|> handlePut :<|> handlePost
 
     handleList = lift . listStore =<< ask
 
