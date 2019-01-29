@@ -16,24 +16,37 @@ app = makeStore (mkStdGen 1) >>= server
 spec :: Spec
 spec = with app $ describe "Store Server" $ do
 
+  let
+    postJson path body = request methodPost path [ ("content-type", "application/json") ] body
+    putJson path body = request methodPut path [ ("content-type", "application/json") ] body
+    getJson path = request methodGet path [ ("content-type", "application/json") ] ""
+
   describe "on POST /"  $ do
     it "responds with key when sent a value" $ do
-      request methodPost "/" [ ("content-type", "application/json") ] "{\"data\":\"1234\"}"
+      postJson "/" "{\"data\":\"1234\"}"
         `shouldRespondWith` "\"a7f6112f4a4b0a0b\"" {matchStatus = 201}
 
   describe "on PUT /<key>"  $ do
     it "responds with key when sent a value with a key" $ do
-      request methodPut "/a7f6112f4a4b0a0b" [ ("content-type", "application/json") ] "{\"data\":\"1234\"}"
+      putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
         `shouldRespondWith` 200
 
   describe "on GET /<key>"  $ do
 
     it "responds with value when sent a key given value exists" $ do
-      void $ request methodPut "/a7f6112f4a4b0a0b" [ ("content-type", "application/json") ] "{\"data\":\"1234\"}"
+      void $ putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
 
-      request methodGet "/a7f6112f4a4b0a0b" [ ("content-type", "application/json") ] ""
+      getJson "/a7f6112f4a4b0a0b"
         `shouldRespondWith` "{\"data\":\"1234\"}"
 
     it "responds with 404 when sent a key given value does not exist" $ do
-      request methodGet "/a7f6112f4a4b0a0b" [ ("content-type", "application/json") ] ""
+      getJson "/a7f6112f4a4b0a0b"
         `shouldRespondWith` 404
+
+  describe "on GET /"  $ do
+
+    it "list all available values" $ do
+      putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
+
+      getJson "/"
+        `shouldRespondWith` "[{\"data\":\"1234\"}]"

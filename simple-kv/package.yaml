@@ -37,6 +37,7 @@ library:
   source-dirs:         src
   exposed-modules:
   - KV
+  - KV.Server
   - KV.Store
   - KV.Types
   ghc-options:

@@ -32,6 +32,7 @@ act (Modify k v) Store{seed} =
   Stored k seed v
 act (Retrieve k) Store{values} =
   maybe (Error $ Text.pack $ "Key '" <> show k <> "' not found") (Retrieved k) $ Map.lookup k values
+act List Store{values} = Listed $ Map.elems values
 
 apply :: Event -> Store -> Store
 apply (Stored k s v) store@Store{values} = store { values = Map.insert k v values
