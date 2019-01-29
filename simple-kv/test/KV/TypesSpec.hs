@@ -10,10 +10,10 @@ import           Test.QuickCheck.Instances ()
 spec :: Spec
 spec = describe "Core Types" $ do
 
-  it "can encode/decode Bytes to/from JSON" $ property $ canJSONEncodeDecode @Bytes
+  it "can encode/decode Values to/from JSON" $ property $ canJSONEncodeDecode @Values
 
-instance Arbitrary Bytes where
-  arbitrary = Bytes <$> arbitrary
+instance Arbitrary Values where
+  arbitrary = Values <$> arbitrary
 
 canJSONEncodeDecode :: (Eq a, Show a, ToJSON a, FromJSON a)
                     => a -> Bool

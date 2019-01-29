@@ -15,7 +15,7 @@ import qualified Data.Map            as Map
 import           KV.Types
 import           System.Random
 
-data Store = Store { values :: Map.Map Key Bytes
+data Store = Store { values :: Map.Map Key Values
                    , seed   :: StdGen
                    }
   deriving (Eq,Show)
@@ -23,10 +23,10 @@ data Store = Store { values :: Map.Map Key Bytes
 emptyStore :: StdGen -> Store
 emptyStore = Store Map.empty
 
-retrieve :: Key -> Store -> Maybe Bytes
+retrieve :: Key -> Store -> Maybe Values
 retrieve k Store{values} = Map.lookup k values
 
-list :: Store -> [ Bytes ]
+list :: Store -> [ Values ]
 list Store{values} = Map.elems values
 
 act :: Command -> Store -> Event
@@ -47,8 +47,8 @@ actAndApply c s = apply (act c s) s
 
 class MonadStore s m where
   send :: Command -> s -> m Event
-  listStore :: s -> m [ Bytes ]
-  retrieveStore :: Key -> s -> m (Maybe Bytes)
+  listStore :: s -> m [ Values ]
+  retrieveStore :: Key -> s -> m (Maybe Values)
 
 instance (MonadTrans t, Monad m, MonadStore s m) => MonadStore s (t m) where
   retrieveStore k s = lift $ retrieveStore k s

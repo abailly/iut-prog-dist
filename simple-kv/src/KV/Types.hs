@@ -5,13 +5,14 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 module KV.Types where
 
+import           Control.Lens           hiding ((.=))
 import           Data.Aeson
 import           Data.ByteString        as BS
 import           Data.ByteString.Base16 as Hex
-import qualified Data.ByteString.Base64 as Base64
 import           Data.String
+import           Data.Swagger
 import           Data.Text              as Text
-import           Data.Text.Encoding     (decodeUtf8, encodeUtf8)
+import           Data.Text.Encoding     (decodeUtf8)
 import           GHC.Generics
 import           Servant
 import           System.Random          as Random
@@ -33,29 +34,39 @@ instance Random Key where
         k = Key $ decodeUtf8 $ Hex.encode $ BS.pack $ Prelude.take 8 $ randoms g
     in (k, g')
 
+instance ToParamSchema Key
+instance ToSchema Key
+
 instance FromHttpApiData Key where
   parseQueryParam = Right . Key
 
 instance ToHttpApiData Key where
   toQueryParam (Key u) = u
 
-newtype Bytes = Bytes { bytes :: ByteString }
+newtype Values = Values { bytes :: Text }
   deriving (Eq, Show, Read, Generic)
 
-deriving newtype instance IsString Bytes
+deriving newtype instance IsString Values
 
-instance ToJSON Bytes where
-  toJSON (Bytes bs) = object [ "data" .= decodeUtf8 (Base64.encode bs) ]
+instance ToSchema Values where
+  declareNamedSchema proxy = genericDeclareNamedSchema defaultSchemaOptions proxy
+                             & mapped.schema.description ?~ "Content of the key-value store, an UTF-8 encoded string"
+                             & mapped.schema.example ?~
+                             toJSON (Values "Fifi" )
 
-instance FromJSON Bytes where
-  parseJSON = withObject "Bytes" $ \ o -> either fail (pure . Bytes) =<< (Base64.decode . encodeUtf8) <$> o.: "data"
 
-data Command = Create { value :: Bytes }
-             | Modify { key :: Key, value :: Bytes }
+instance ToJSON Values where
+  toJSON (Values bs) = object [ "data" .= bs ]
+
+instance FromJSON Values where
+  parseJSON = withObject "Values" $ \ o -> Values <$> o .: "data"
+
+data Command = Create { value :: Values }
+             | Modify { key :: Key, value :: Values }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 
-data Event = Stored { storedKey :: Key, seed :: StdGen, value :: Bytes }
+data Event = Stored { storedKey :: Key, seed :: StdGen, value :: Values }
            | Error { reason :: Text }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 

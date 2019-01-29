@@ -23,10 +23,13 @@ dependencies:
 - base64-bytestring
 - containers
 - data-default
+- lens
 - mtl
 - random
 - servant
 - servant-server
+- servant-swagger
+- swagger2
 - text
 - time
 - wai

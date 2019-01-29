@@ -50,3 +50,7 @@ spec = with app $ describe "Store Server" $ do
 
       getJson "/"
         `shouldRespondWith` "[{\"data\":\"1234\"}]"
+
+  describe "on GET /swagger.json"  $ do
+    it "returns a Swagger descriptor for API" $ do
+      getJson "/swagger.json" `shouldRespondWith` 200

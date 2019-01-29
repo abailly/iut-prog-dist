@@ -3,25 +3,41 @@
 {-# LANGUAGE TypeOperators    #-}
 module KV.Server where
 
+import           Control.Lens
 import           Control.Monad.Reader
+import           Data.Swagger
 import           KV.Store
 import           KV.Types
 import           Servant
+import           Servant.Swagger
 
 
-type API = Get '[JSON] [Bytes]
-  :<|> Capture "key" Key :> Get '[JSON] Bytes
-  :<|> Capture "key" Key :> ReqBody '[JSON] Bytes :> Put '[JSON] NoContent
-  :<|> ReqBody '[JSON] Bytes :> PostCreated '[JSON] Key
+type API = Get '[JSON] [Values]
+  :<|> Capture "key" Key :> Get '[JSON] Values
+  :<|> Capture "key" Key :> ReqBody '[JSON] Values :> Put '[JSON] NoContent
+  :<|> ReqBody '[JSON] Values :> PostCreated '[JSON] Key
 
 kvApi :: Proxy API
 kvApi = Proxy
 
+type SwaggerEndpoint = "swagger.json" :> Get '[JSON] Swagger
+
+fullApi :: Proxy (SwaggerEndpoint :<|> API)
+fullApi = Proxy
+
+-- | Swagger spec for Todo API.
+kvSwagger :: Swagger
+kvSwagger = toSwagger kvApi
+            & info.title   .~ "Key/Value Store API"
+            & info.version .~ "1.0"
+            & info.description ?~ "An API for a dumb Key-Value store"
+            & info.license ?~ ("MIT" & url ?~ URL "http://mit.com")
+
 server :: (MonadStore s IO) => s -> IO Application
-server store = pure $ serve kvApi $ hoistServer kvApi runServer prodHandler
+server store = pure $ serve fullApi $ hoistServer fullApi runServer prodHandler
   where
     runServer = Handler . flip runReaderT store
-    prodHandler = handleList :<|> handleGet :<|> handlePut :<|> handlePost
+    prodHandler = pure kvSwagger :<|> (handleList :<|> handleGet :<|> handlePut :<|> handlePost)
 
     handleList = lift . listStore =<< ask
 
