@@ -22,10 +22,7 @@ spec = describe "Store Ops" $ do
     let event = act (Create "123") store
         store' = apply event store
 
-    act (Retrieve "a7f6112f4a4b0a0b") store' `shouldBe` Retrieved "a7f6112f4a4b0a0b"  "123"
+    retrieve "a7f6112f4a4b0a0b" store' `shouldBe` Just "123"
 
-  it "return an error when retrieving given key does not exist" $ do
-    act (Retrieve "a7f6112f4a4b0a0b") store `shouldBe` Error "Key 'a7f6112f4a4b0a0b' not found"
-
-  it "do not update store when retrieving" $ do
-    apply (Retrieved "a7f6112f4a4b0a0b"  "123") store `shouldBe` store
+  it "returns Nothing when retrieving given key does not exist" $ do
+    retrieve "a7f6112f4a4b0a0b" store `shouldBe` Nothing

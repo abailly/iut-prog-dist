@@ -46,7 +46,7 @@ spec = with app $ describe "Store Server" $ do
   describe "on GET /"  $ do
 
     it "list all available values" $ do
-      putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
+      void $ putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
 
       getJson "/"
         `shouldRespondWith` "[{\"data\":\"1234\"}]"

@@ -23,17 +23,13 @@ server store = pure $ serve kvApi $ hoistServer kvApi runServer prodHandler
     runServer = Handler . flip runReaderT store
     prodHandler = handleList :<|> handleGet :<|> handlePut :<|> handlePost
 
-    handleList = do
-      e <- ask >>= lift . send List
-      case e of
-        Listed vs -> pure vs
-        _         -> throwError err500
+    handleList = lift . listStore =<< ask
 
     handleGet k = do
-      e <- ask >>= lift . send (Retrieve k)
+      e <- (lift . retrieveStore k) =<< ask
       case e of
-        Retrieved _ v -> pure v
-        _             -> throwError err404
+        Just v  -> pure v
+        Nothing -> throwError err404
 
     handlePut k v = do
       e <- ask >>= lift . send (Modify k v)

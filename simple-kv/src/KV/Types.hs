@@ -52,14 +52,10 @@ instance FromJSON Bytes where
 
 data Command = Create { value :: Bytes }
              | Modify { key :: Key, value :: Bytes }
-             | Retrieve { key :: Key }
-             | List
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 
 data Event = Stored { storedKey :: Key, seed :: StdGen, value :: Bytes }
-           | Retrieved { getKey :: Key, value :: Bytes }
-           | Listed { listedValues :: [ Bytes ] }
            | Error { reason :: Text }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 

@@ -31,6 +31,10 @@ makeStore = do
 
 instance MonadStore StoreDB IO where
 
+  listStore StoreDB{storeRef} = list <$> readMVar storeRef
+
+  retrieveStore k StoreDB{storeRef} = retrieve k <$> readMVar storeRef
+
   send input StoreDB{storeRef, eventSink} = withinLog input $ liftIO $ modifyMVar storeRef $ \ store@Store{..} -> do
     let event = act input store
     hPutStrLn eventSink (decodeUtf8 $ encode event)

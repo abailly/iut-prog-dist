@@ -15,6 +15,10 @@ makeStore g = StoreDB <$> newMVar (emptyStore g)
 
 instance MonadStore StoreDB IO where
 
+  listStore StoreDB{storeRef} = list <$> readMVar storeRef
+
+  retrieveStore k StoreDB{storeRef} = retrieve k <$> readMVar storeRef
+
   send input StoreDB{storeRef} = modifyMVar storeRef $ \ store@Store{..} -> do
     let event = act input store
     pure (apply event store, event)
