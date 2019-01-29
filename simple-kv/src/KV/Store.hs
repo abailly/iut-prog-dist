@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns        #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -9,62 +10,41 @@
 --
 module KV.Store where
 
-import           Control.Concurrent.MVar
-import           Control.Exception
-import           Control.Monad.Trans     (MonadIO (..))
-import           Data.Aeson              (eitherDecode, encode)
-import           Data.ByteString         (ByteString)
-import qualified Data.Map                as Map
-import           Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
-import           Data.Text.Lazy.IO       (hGetLine, hPutStrLn)
-import           KV.Log                  (withinLog)
+import           Control.Monad.Trans
+import qualified Data.Map            as Map
+import qualified Data.Text           as Text
 import           KV.Types
-import qualified System.IO               as IO
-import           System.IO.Error
+import           System.Random
 
-data Store = Store { values    :: Map.Map Key ByteString
-                   , eventSink :: IO.Handle
+data Store = Store { values :: Map.Map Key Bytes
+                   , seed   :: StdGen
                    }
+  deriving (Eq,Show)
 
-send :: (MonadIO m) => Command -> StoreDB -> m Event
-send input storedb = withinLog input $ liftIO $ modifyMVar storedb $ \ store@Store{..} -> do
-  let event = act input store
-  hPutStrLn eventSink (decodeUtf8 $ encode event)
-  IO.hFlush eventSink
-  pure (apply event store, event)
-
-resetStore :: (MonadIO m) => StoreDB -> m ()
-resetStore db = liftIO $ modifyMVar_  db $ \ Store{..} -> do
-  IO.hSeek eventSink IO.AbsoluteSeek 0
-  IO.hSetFileSize eventSink 0
-  pure $ Store Map.empty eventSink
+emptyStore :: StdGen -> Store
+emptyStore = Store Map.empty
 
 act :: Command -> Store -> Event
-act _  _ = Error { reason = "Not Implemented" }
+act (Create d) Store{seed} =
+  let (k, g) = random seed
+  in Stored k g d
+act (Modify k v) Store{seed} =
+  Stored k seed v
+act (Retrieve k) Store{values} =
+  maybe (Error $ Text.pack $ "Key '" <> show k <> "' not found") (Retrieved k) $ Map.lookup k values
 
 apply :: Event -> Store -> Store
-apply _ store       = store
+apply (Stored k s v) store@Store{values} = store { values = Map.insert k v values
+                                                 , seed = s
+                                                 }
+apply _ store = store
 
-type StoreDB = MVar Store
+actAndApply :: Command -> Store -> Store
+actAndApply c s = apply (act c s) s
 
-makeStore :: IO StoreDB
-makeStore = do
-  h <- IO.openFile "store.db" IO.ReadWriteMode
-  IO.hSetBuffering h IO.NoBuffering
-  let store = Store Map.empty h
-  catchup store >>= newMVar
 
-catchup :: Store -> IO Store
-catchup store =
-  (readAndApplyOneEvent store >>= catchup)
-  `catch` \ (e :: IOException) -> if isEOFError e
-                                  then pure store
-                                  else throwIO e
+class MonadStore s m where
+  send :: Command -> s -> m Event
 
-readAndApplyOneEvent :: Store -> IO Store
-readAndApplyOneEvent store@Store{eventSink} = do
-  serializedEvent <- hGetLine eventSink
-  either
-    (throwIO . userError . (\ e -> "failed to decode event " <> show serializedEvent <> ": " <> e))
-    (pure . flip apply store)
-    $ eitherDecode (encodeUtf8 serializedEvent)
+instance (MonadTrans t, Monad m, MonadStore s m) => MonadStore s (t m) where
+  send c s = lift $ send c s

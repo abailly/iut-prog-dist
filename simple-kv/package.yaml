@@ -19,10 +19,12 @@ dependencies:
 - aeson
 - base >= 4.7 && < 5
 - bytestring
+- base16-bytestring
 - base64-bytestring
 - containers
 - data-default
 - mtl
+- random
 - servant
 - servant-server
 - text
@@ -35,6 +37,8 @@ library:
   source-dirs:         src
   exposed-modules:
   - KV
+  - KV.Store
+  - KV.Types
   ghc-options:
   - -Wall
   - -Werror
@@ -63,5 +67,7 @@ tests:
     - simple-kv
     - hspec
     - hspec-discover
+    - hspec-wai
+    - http-types
     - QuickCheck
     - quickcheck-instances
