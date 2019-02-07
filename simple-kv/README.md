@@ -1,1 +1,9 @@
-A dumb Key-Value store
+# A dumb Key-Value store
+
+## GET
+
+![](get.png)
+
+## PUT
+
+![](put.png)
