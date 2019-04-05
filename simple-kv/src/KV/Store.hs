@@ -35,11 +35,13 @@ act (Create d) Store{seed} =
   in Stored k g d
 act (Modify k v) Store{seed} =
   Stored k seed v
+act ClearAll _ = Cleared
 
 apply :: Event -> Store -> Store
 apply (Stored k s v) store@Store{values} = store { values = Map.insert k v values
                                                  , seed = s
                                                  }
+apply Cleared Store{seed} = Store mempty seed
 apply _ store = store
 
 actAndApply :: Command -> Store -> Store

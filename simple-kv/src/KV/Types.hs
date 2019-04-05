@@ -63,10 +63,12 @@ instance FromJSON Values where
 
 data Command = Create { value :: Values }
              | Modify { key :: Key, value :: Values }
+             | ClearAll
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 
 
 data Event = Stored { storedKey :: Key, seed :: StdGen, value :: Values }
+           | Cleared
            | Error { reason :: Text }
   deriving (Eq, Show, Read, Generic, ToJSON, FromJSON)
 

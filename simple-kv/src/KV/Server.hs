@@ -14,6 +14,7 @@ import           Servant.Swagger.UI
 
 
 type API = Get '[JSON] [Values]
+  :<|> Delete '[JSON] NoContent
   :<|> Capture "key" Key :> Get '[JSON] Values
   :<|> Capture "key" Key :> ReqBody '[JSON] Values :> Put '[JSON] NoContent
   :<|> ReqBody '[JSON] Values :> PostCreated '[JSON] Key
@@ -38,9 +39,15 @@ server :: (MonadStore s IO) => s -> IO Application
 server store = pure $ serve fullApi $ swaggerSchemaUIServer kvSwagger :<|> hoistServer kvApi runServer prodHandler
   where
     runServer = Handler . flip runReaderT store
-    prodHandler = handleList :<|> handleGet :<|> handlePut :<|> handlePost
+    prodHandler = handleList :<|> handleDelete :<|> handleGet :<|> handlePut :<|> handlePost
 
     handleList = lift . listStore =<< ask
+
+    handleDelete = do
+      e <- ask >>= lift . send ClearAll
+      case e of
+        Cleared -> pure NoContent
+        _       -> throwError err500
 
     handleGet k = do
       e <- (lift . retrieveStore k) =<< ask

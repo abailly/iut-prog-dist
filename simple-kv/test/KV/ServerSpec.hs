@@ -22,6 +22,7 @@ spec = with app $ describe "Store Server" $ do
     getJson path = request methodGet path [ ("content-type", "application/json") ] ""
 
   describe "on POST /"  $ do
+
     it "responds with key when sent a value" $ do
       postJson "/" "{\"data\":\"1234\"}"
         `shouldRespondWith` "\"a7f6112f4a4b0a0b\"" {matchStatus = 201}
@@ -54,3 +55,15 @@ spec = with app $ describe "Store Server" $ do
   describe "on GET /swagger.json"  $ do
     it "returns a Swagger descriptor for API" $ do
       getJson "/swagger.json" `shouldRespondWith` 200
+
+  describe "on DELETE /"  $ do
+
+    it "clear all values" $ do
+      -- arrange
+      void $ putJson "/a7f6112f4a4b0a0b" "{\"data\":\"1234\"}"
+
+      -- act
+      delete  "/" `shouldRespondWith` 200
+
+      -- assert
+      getJson "/a7f6112f4a4b0a0b" `shouldRespondWith` 404
